@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>מעבדת סדרות: הוכח או הפרך | חדו"א 1</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Heebo', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Heebo', sans-serif;
+      background-color: #0b1120;
+      color: #f1f5f9;
+    }
+    .katex {
+      direction: ltr;
+      unicode-bidi: isolate;
+      font-size: 1.15em;
+    }
+    .ltr-input {
+      direction: ltr;
+      text-align: left;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(51, 65, 85, 0.7);
+    }
+    .chip-btn {
+      transition: all 0.15s ease;
+    }
+    .chip-btn:active {
+      transform: scale(0.97);
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.94); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+  <!-- Top Navbar & Gamification Stats -->
+  <header class="sticky top-0 z-30 glass-panel border-b border-slate-800 px-4 py-3">
+    <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-indigo-500/20">
+          ∑
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white">מעבדת סדרות: הוכח או הפרך</h1>
+          <p class="text-xs text-slate-400">חדו"א 1 • סימולטור דוגמאות נגדיות וחקירת גבולות</p>
+        </div>
+      </div>
+
+      <!-- Score, Streak & Cheat Sheet Trigger -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 px-3 py-1.5 rounded-xl">
+          <span class="text-amber-400 text-sm">★</span>
+          <span class="text-xs text-slate-400">ניקוד:</span>
+          <span id="scoreDisplay" class="font-bold text-amber-300 text-sm">0</span>
+        </div>
+        <div class="flex items-center gap-1.5 bg-slate-800/90 border border-slate-700 px-3 py-1.5 rounded-xl">
+          <span class="text-orange-400 text-sm">🔥</span>
+          <span class="text-xs text-slate-400">רצף:</span>
+          <span id="streakDisplay" class="font-bold text-orange-300 text-sm">0</span>
+        </div>
+        <button id="toggleCheatSheetBtn" class="bg-indigo-600/20 hover:bg-indigo-600/35 text-indigo-300 border border-indigo-500/40 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center gap-1.5">
+          <span>🧰</span>
+          <span>ארגז כלים</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-6 flex flex-col gap-6">
+
+    <!-- Mode Switcher Tabs -->
+    <div class="grid grid-cols-2 gap-2 p-1.5 bg-slate-900/90 border border-slate-800 rounded-2xl max-w-xl mx-auto w-full">
+      <button id="tabCounterexample" onclick="switchMode('counter')" class="py-2.5 px-4 rounded-xl font-bold text-sm sm:text-base transition flex items-center justify-center gap-2 bg-indigo-600 text-white shadow-lg shadow-indigo-600/25">
+        <span>⚡</span>
+        <span>אתגר הפרכה (הזנת סדרה)</span>
+      </button>
+      <button id="tabClassifier" onclick="switchMode('classify')" class="py-2.5 px-4 rounded-xl font-bold text-sm sm:text-base transition flex items-center justify-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/60">
+        <span>🔬</span>
+        <span>חקירת סדרה (אבחון)</span>
+      </button>
+    </div>
+
+    <!-- ==================== MODE 1: COUNTEREXAMPLE CHALLENGE ==================== -->
+    <section id="modeCounter" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- Left Column (7 cols): Challenge Prompt & Interactive Formula Builder -->
+      <div class="lg:col-span-7 flex flex-col gap-4">
+        
+        <!-- Challenge Card -->
+        <div class="glass-panel rounded-2xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <span id="ceLevelBadge" class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              אתגר 1 מתוך 8
+            </span>
+            <div class="flex items-center gap-1.5">
+              <button onclick="prevCounterLevel()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs" title="אתגר קודם">◀ הקודם</button>
+              <button onclick="nextCounterLevel()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs" title="דלג לאתגר הבא">הבא ▶</button>
+            </div>
+          </div>
+
+          <h2 class="text-sm font-semibold text-rose-400 mb-1">הטענה השקרית להפרכה:</h2>
+          <div id="ceClaimText" class="text-lg sm:text-xl font-bold text-white leading-relaxed mb-4"></div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs bg-slate-900/90 p-3.5 rounded-xl border border-slate-800">
+            <div class="flex items-start gap-2">
+              <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold shrink-0">תנאי (חובה)</span>
+              <span id="ceHypothesisText" class="text-slate-300 leading-snug"></span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold shrink-0">מטרה (להפיל)</span>
+              <span id="ceViolationText" class="text-slate-300 leading-snug"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sequence Input & Keypad -->
+        <div class="glass-panel rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <label for="seqInput" class="font-bold text-sm sm:text-base text-slate-200">הזיני נוסחה לאיבר הכללי <span class="math-inline" data-tex="a_n"></span>:</label>
+            <button onclick="toggleCeHint()" class="text-xs text-amber-400 hover:text-amber-300 underline underline-offset-4">צריכה רמז?</button>
+          </div>
+
+          <div id="ceHintBox" class="hidden bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs sm:text-sm p-3 rounded-xl"></div>
+
+          <!-- Input Row -->
+          <div class="flex flex-col sm:flex-row gap-2.5">
+            <div class="relative flex-1 flex items-center bg-slate-950 border-2 border-slate-700 focus-within:border-indigo-500 rounded-xl px-3.5 py-2.5 transition">
+              <span class="text-slate-400 font-mono text-sm sm:text-base mr-2 select-none" dir="ltr">a_n =</span>
+              <input id="seqInput" type="text" placeholder="לדוגמה: (-1)^n / n" value="(-1)^n / n"
+                class="ltr-input w-full bg-transparent text-white text-base sm:text-lg focus:outline-none"
+                oninput="handleSeqInputChange()" onkeydown="if(event.key==='Enter') evaluateCounterexample()" />
+              <button onclick="clearSeqInput()" class="text-slate-500 hover:text-slate-300 text-xs px-1.5" title="נקה">✕</button>
+            </div>
+            <button onclick="evaluateCounterexample()" class="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-indigo-600/25 transition shrink-0">
+              בדוק הפרכה!
+            </button>
+          </div>
+
+          <!-- Live Rendered Math Preview -->
+          <div class="flex items-center justify-between bg-slate-900/80 border border-slate-800/90 px-4 py-2.5 rounded-xl min-h-[48px]">
+            <span class="text-xs text-slate-400">תצוגה מתמטית:</span>
+            <div id="liveMathPreview" class="text-cyan-300 font-semibold overflow-x-auto"></div>
+          </div>
+
+          <!-- Quick Insert Math Keypad -->
+          <div>
+            <div class="text-xs text-slate-400 mb-2">הוספה מהירה לנוסחה:</div>
+            <div class="flex flex-wrap gap-1.5" dir="ltr">
+              <button onclick="insertToken('(-1)^n')" class="chip-btn px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-mono text-indigo-300">(-1)^n</button>
+              <button onclick="insertToken('1/n')" class="chip-btn px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-mono text-cyan-300">1/n</button>
+              <button onclick="insertToken('n')" class="chip-btn px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-mono text-slate-200">n</button>
+              <button onclick="insertToken('-n')" class="chip-btn px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-mono text-slate-200">-n</button>
+              <button onclick="insertToken('n^2')" class="chip-btn px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-mono text-slate-200">n^2</button>
+              <button onclick="insertToken('sin(n)')" class="chip-btn px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-mono text-emerald-300">sin(n)</button>
+              <button onclick="insertToken('cos(n*pi/2)')" class="chip-btn px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-mono text-emerald-300">cos(n*pi/2)</button>
+              <button onclick="insertToken('(1 + 1/n)^n')" class="chip-btn px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-mono text-amber-300">(1 + 1/n)^n</button>
+              <button onclick="insertToken('H_n')" class="chip-btn px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-mono text-purple-300" title="הסכום החלקי של הטור ההרמוני: 1 + 1/2 + ... + 1/n">H_n (טור הרמוני)</button>
+              <button onclick="insertToken('sum(1/(n+k))')" class="chip-btn px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-mono text-purple-300">sum(1/(n+k))</button>
+            </div>
+          </div>
+
+          <!-- Feedback Alert Box -->
+          <div id="ceFeedback" class="hidden animate-pop rounded-xl p-4 border text-sm leading-relaxed"></div>
+        </div>
+      </div>
+
+      <!-- Right Column (5 cols): Live Graph & First Terms Table -->
+      <div class="lg:col-span-5 flex flex-col gap-4">
+        <div class="glass-panel rounded-2xl p-5 shadow-xl">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-sm sm:text-base text-slate-200">ויזואליזציה של הסדרה (<span class="font-mono text-xs text-cyan-400">n = 1..25</span>)</h3>
+            <span id="graphStatusTag" class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">תצוגה חיה</span>
+          </div>
+          <div class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2">
+            <canvas id="ceCanvas" class="w-full h-64 block"></canvas>
+          </div>
+          <div class="mt-3">
+            <div class="text-xs text-slate-400 mb-1.5">האיברים הראשונים של הסדרה שהזנת:</div>
+            <div id="ceTermsStrip" class="flex gap-1.5 overflow-x-auto pb-1 text-xs font-mono" dir="ltr"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== MODE 2: SEQUENCE CLASSIFIER LAB ==================== -->
+    <section id="modeClassify" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- Left Column (7 cols): Sequence Display & Diagnostic Toggles -->
+      <div class="lg:col-span-7 flex flex-col gap-4">
+        <div class="glass-panel rounded-2xl p-5 sm:p-6 shadow-xl">
+          <div class="flex items-center justify-between mb-4">
+            <span id="clBadge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+              דגימה 1 מתוך 10
+            </span>
+            <div class="flex items-center gap-1.5">
+              <button onclick="prevClassifyLevel()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs">◀ הקודמת</button>
+              <button onclick="nextClassifyLevel()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs">הבאה ▶</button>
+            </div>
+          </div>
+
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 text-center mb-5">
+            <div class="text-xs text-slate-400 mb-2">אבחני את תכונות הסדרה הבאה:</div>
+            <div id="clFormulaDisplay" class="text-2xl sm:text-3xl font-bold text-white py-2"></div>
+            <div id="clSubNote" class="text-xs text-slate-400 mt-1"></div>
+          </div>
+
+          <!-- 4 Diagnostic Questions -->
+          <div class="flex flex-col gap-4">
+            
+            <!-- Q1: Convergence -->
+            <div>
+              <label class="block text-xs sm:text-sm font-bold text-slate-300 mb-2">1. התנהגות והתכנסות:</label>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" id="group-conv">
+                <button type="button" onclick="selectDiag('conv', 'finite', this)" class="diag-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-300">מתכנסת לגבול סופי</button>
+                <button type="button" onclick="selectDiag('conv', 'inf', this)" class="diag-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-300">שואפת לאינסוף (±∞)</button>
+                <button type="button" onclick="selectDiag('conv', 'div', this)" class="diag-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-300">מתבדרת (אין גבול)</button>
+              </div>
+            </div>
+
+            <!-- Q2: Monotonicity -->
+            <div>
+              <label class="block text-xs sm:text-sm font-bold text-slate-300 mb-2">2. מונוטוניות:</label>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" id="group-mono">
+                <button type="button" onclick="selectDiag('mono', 'inc', this)" class="diag-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-300">מונוטונית עולה</button>
+                <button type="button" onclick="selectDiag('mono', 'dec', this)" class="diag-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-300">מונוטונית יורדת</button>
+                <button type="button" onclick="selectDiag('mono', 'non', this)" class="diag-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-300">לא מונוטונית</button>
+              </div>
+            </div>
+
+            <!-- Q3: Boundedness -->
+            <div>
+              <label class="block text-xs sm:text-sm font-bold text-slate-300 mb-2">3. חסימות:</label>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" id="group-bound">
+                <button type="button" onclick="selectDiag('bound', 'both', this)" class="diag-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-300">חסומה (מלעיל ומלרע)</button>
+                <button type="button" onclick="selectDiag('bound', 'one', this)" class="diag-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-300">חסומה רק מצד אחד</button>
+                <button type="button" onclick="selectDiag('bound', 'none', this)" class="diag-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-300">לא חסומה כלל</button>
+              </div>
+            </div>
+
+            <!-- Q4: Main Tool -->
+            <div>
+              <label class="block text-xs sm:text-sm font-bold text-slate-300 mb-2">4. הכלי המרכזי לטיפול בה במבחן:</label>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="group-tool">
+                <button type="button" onclick="selectDiag('tool', 'sandwich', this)" class="diag-btn py-2.5 px-2 rounded-xl border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-xs font-semibold text-slate-300">כלל הסנדוויץ'</button>
+                <button type="button" onclick="selectDiag('tool', 'mono', this)" class="diag-btn py-2.5 px-2 rounded-xl border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-xs font-semibold text-slate-300">מונוטוניות וחסימות</button>
+                <button type="button" onclick="selectDiag('tool', 'subseq', this)" class="diag-btn py-2.5 px-2 rounded-xl border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-xs font-semibold text-slate-300">תתי-סדרות</button>
+                <button type="button" onclick="selectDiag('tool', 'known', this)" class="diag-btn py-2.5 px-2 rounded-xl border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-xs font-semibold text-slate-300">גבול ידוע / השוואה</button>
+              </div>
+            </div>
+
+            <button onclick="checkDiagnosis()" class="mt-2 w-full bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-cyan-600/20 transition">
+              בדוק אבחון!
+            </button>
+          </div>
+
+          <div id="clFeedback" class="hidden animate-pop mt-4 rounded-xl p-4 border text-sm leading-relaxed"></div>
+        </div>
+      </div>
+
+      <!-- Right Column (5 cols): Graph of the target sequence -->
+      <div class="lg:col-span-5 flex flex-col gap-4">
+        <div class="glass-panel rounded-2xl p-5 shadow-xl">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-sm sm:text-base text-slate-200">התנהגות הסדרה בגרף (<span class="font-mono text-xs text-cyan-400">n = 1..25</span>)</h3>
+          </div>
+          <div class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2">
+            <canvas id="clCanvas" class="w-full h-64 block"></canvas>
+          </div>
+          <div class="mt-3">
+            <div class="text-xs text-slate-400 mb-1.5">ערכים מספריים ראשונים:</div>
+            <div id="clTermsStrip" class="flex gap-1.5 overflow-x-auto pb-1 text-xs font-mono" dir="ltr"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Collapsible Cheat Sheet Modal / Drawer -->
+  <div id="cheatSheetModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl animate-pop">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🧰</span>
+          <h2 class="font-bold text-lg text-white">ארגז כלים: סדרות מיוחדות ודוגמאות נגדיות</h2>
+        </div>
+        <button id="closeCheatSheetBtn" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center">✕</button>
+      </div>
+      <div class="p-5 overflow-y-auto space-y-3 text-xs sm:text-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="bg-slate-950/90 border border-slate-800 p-3.5 rounded-xl">
+            <div class="font-bold text-cyan-300 mb-1" dir="ltr">a_n = (-1)^n / n</div>
+            <p class="text-slate-300">מתכנסת ל-0 (בסנדוויץ'), חסומה, אך <strong>לא מונוטונית</strong>. מפריכה שכל מתכנסת היא מונוטונית.</p>
+          </div>
+          <div class="bg-slate-950/90 border border-slate-800 p-3.5 rounded-xl">
+            <div class="font-bold text-cyan-300 mb-1" dir="ltr">a_n = (-1)^n</div>
+            <p class="text-slate-300">חסומה בין 1- ל-1, אך <strong>מתבדרת</strong> (גבולות חלקיים 1 ו-1-). מפריכה שכל חסומה מתכנסת.</p>
+          </div>
+          <div class="bg-slate-950/90 border border-slate-800 p-3.5 rounded-xl">
+            <div class="font-bold text-cyan-300 mb-1" dir="ltr">a_n = n * cos(n*pi/2)</div>
+            <p class="text-slate-300"><strong>לא חסומה</strong> (גבולות חלקיים ±∞), אך לא שואפת לאינסוף כי יש אינסוף אפסים (באינדקסים אי-זוגיים).</p>
+          </div>
+          <div class="bg-slate-950/90 border border-slate-800 p-3.5 rounded-xl">
+            <div class="font-bold text-cyan-300 mb-1" dir="ltr">H_n = 1 + 1/2 + ... + 1/n</div>
+            <p class="text-slate-300">הטור ההרמוני: עולה ושואף ל-∞, למרות שהפרש האיברים <span dir="ltr">a_{n+1} - a_n = 1/(n+1) → 0</span>.</p>
+          </div>
+          <div class="bg-slate-950/90 border border-slate-800 p-3.5 rounded-xl">
+            <div class="font-bold text-cyan-300 mb-1" dir="ltr">a_n = 1/(n+1) + ... + 1/(2n)</div>
+            <p class="text-slate-300">עולה וחסומה מלעיל ב-1 (מתכנסת ל-ln 2). קלאסיקה של <strong>מונוטוניות וחסימות</strong>.</p>
+          </div>
+          <div class="bg-slate-950/90 border border-slate-800 p-3.5 rounded-xl">
+            <div class="font-bold text-cyan-300 mb-1" dir="ltr">a_n = n + (-1)^n</div>
+            <p class="text-slate-300">שואפת ל-∞, אך <strong>לא מונוטונית</strong> (יורדת בצעדים אי-זוגיים: 0, 3, 2, 5, 4...).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== STATE & DATA ====================
+    let score = 0;
+    let streak = 0;
+    let currentMode = 'counter';
+    let ceIndex = 0;
+    let clIndex = 0;
+    let ceSolved = new Set();
+    let clSolved = new Set();
+    let diagSelections = { conv: null, mono: null, bound: null, tool: null };
+
+    // Counterexample Levels Data
+    const counterLevels = [
+      {
+        claim: "כל סדרה מתכנסת לגבול סופי היא מונוטונית החל ממקום מסוים.",
+        hypothesis: "הסדרה מתכנסת לגבול סופי L.",
+        violation: "הסדרה אינה מונוטונית (עולה ויורדת לסירוגין).",
+        hint: "נסי סדרה שמתכנסת ל-0 משני הצדדים — חיובי ושלילי לסירוגין, כמו (-1)^n / n או sin(n) / n.",
+        suggested: "(-1)^n / n",
+        check: (props) => {
+          if (!props.valid) return { ok: false, msg: "לא הצלחתי לחשב את הסדרה. ודאי שהנוסחה כתובה נכון בעזרת המשתנה n." };
+          if (!props.convergesFinite) {
+            if (props.oscillatesBounded) {
+              return { ok: false, msg: "כמעט! הסדרה שהזנת אכן לא מונוטונית, אבל היא גם לא מתכנסת (היא קופצת בין ערכים קבועים). חלקי אותה ב-n כדי שתימעך ל-0!" };
+            }
+            return { ok: false, msg: "הסדרה שהזנת לא מתכנסת לגבול סופי, ולכן היא לא מקיימת את תנאי הטענה." };
+          }
+          if (props.isMonotonicEventually) {
+            return { ok: false, msg: "הסדרה שהזנת באמת מתכנסת לגבול סופי, אבל היא גם מונוטונית! אנחנו מחפשים סדרה שמתכנסת בלי להיות מונוטונית." };
+          }
+          return {
+            ok: true,
+            msg: `בול פגיעה! הסדרה שהזנת מתכנסת לגבול סופי (למשל ל-${props.limitApprox}), אבל ממשיכה לזגזג למעלה ולמטה עד אינסוף ולכן אינה מונוטונית.`
+          };
+        }
+      },
+      {
+        claim: "כל סדרה חסומה (מלעיל ומלרע) מתכנסת לגבול סופי.",
+        hypothesis: "הסדרה חסומה בין שני מספרים קבועים.",
+        violation: "הסדרה מתבדרת (אין לה גבול).",
+        hint: "קחי סדרה שקופצת בין שני ערכים קבועים בלי להירגע לעולם, למשל (-1)^n או sin(n).",
+        suggested: "(-1)^n",
+        check: (props) => {
+          if (!props.valid) return { ok: false, msg: "נוסחה לא תקינה, בדקי את הכתיב." };
+          if (!props.isBounded) {
+            return { ok: false, msg: "הסדרה שהזנת לא חסומה (היא בורחת לאינסוף). הטענה מדברת על סדרות חסומות!" };
+          }
+          if (props.convergesFinite) {
+            return { ok: false, msg: "הסדרה שהזנת חסומה, אבל היא דווקא מתכנסת! כדי להפריך צריך סדרה חסומה שמתבדרת." };
+          }
+          return {
+            ok: true,
+            msg: "מעולה! הסדרה חסומה (נשארת בתוך תחום סופי), אבל יש לה לפחות שני גבולות חלקיים שונים ולכן היא מתבדרת. זה מפריך את ההפך של משפט 'כל מתכנסת חסומה'."
+          };
+        }
+      },
+      {
+        claim: "כל סדרה לא חסומה שואפת לאינסוף במובן הרחב (|a_n| → ∞).",
+        hypothesis: "הסדרה אינה חסומה (יש לה תת-סדרה ששואפת לאינסוף).",
+        violation: "קיימת תת-סדרה שלא שואפת לאינסוף (למשל שואפת ל-0).",
+        hint: "זוכרת את שאלה 9 מהדף שלך? הכפילי את n בביטוי שמתאפס באינדקסים מסוימים, כמו n * cos(n*pi/2).",
+        suggested: "n * cos(n*pi/2)",
+        check: (props) => {
+          if (!props.valid) return { ok: false, msg: "נוסחה לא תקינה." };
+          if (props.isBounded) {
+            return { ok: false, msg: "הסדרה שהזנת חסומה! אנחנו צריכים סדרה לא חסומה." };
+          }
+          if (props.absToInfinity) {
+            return { ok: false, msg: "הסדרה שהזנת לא חסומה, אבל |a_n| באמת שואף לאינסוף (כל האיברים בורחים). אנחנו מחפשים סדרה שחלק מהאיברים בורחים וחלק נתקעים!" };
+          }
+          return {
+            ok: true,
+            msg: "אלופה! הסדרה לא חסומה (בורחת לאינסוף בתת-סדרה אחת), אבל בגלל שיש לה תת-סדרה שנתקעת (למשל אפסים), היא לא שואפת לאינסוף במובן הרחב."
+          };
+        }
+      },
+      {
+        claim: "כל סדרה מונוטונית חייבת להתכנס לגבול סופי.",
+        hypothesis: "הסדרה מונוטונית (עולה או יורדת).",
+        violation: "הסדרה אינה חסומה ולכן שואפת לאינסוף (לא לגבול סופי).",
+        hint: "משפט מונוטוניות דורש *גם* מונוטוניות *וגם* חסימות. תני את הסדרה העולה הפשוטה ביותר בעולם (כמו n או n^2).",
+        suggested: "n",
+        check: (props) => {
+          if (!props.valid) return { ok: false, msg: "נוסחה לא תקינה." };
+          if (!props.isMonotonicEventually) {
+            return { ok: false, msg: "הסדרה שהזנת לא מונוטונית." };
+          }
+          if (props.convergesFinite) {
+            return { ok: false, msg: "הסדרה מונוטונית, אבל היא גם חסומה ולכן מתכנסת לגבול סופי. תני סדרה מונוטונית שבורחת לאינסוף!" };
+          }
+          return {
+            ok: true,
+            msg: "מדויק! הסדרה מונוטונית, אבל בלי חסימות היא פשוט בורחת לאינסוף ולא מתכנסת לגבול סופי."
+          };
+        }
+      },
+      {
+        claim: "אם הפרש האיברים הסמוכים שואף לאפס (a_{n+1} - a_n → 0), אז הסדרה מתכנסת לגבול סופי.",
+        hypothesis: "המרחק בין כל שני איברים עוקבים הולך וקטן ל-0.",
+        violation: "הסדרה עצמה מתבדרת לאינסוף.",
+        hint: "הדוגמה המפורסמת ביותר בחדו\"א! לחצי על כפתור H_n (הטור ההרמוני: 1 + 1/2 + ... + 1/n).",
+        suggested: "H_n",
+        check: (props) => {
+          if (!props.valid) return { ok: false, msg: "נוסחה לא תקינה." };
+          if (!props.diffToZero) {
+            return { ok: false, msg: "בסדרה שהזנת הפרש האיברים הסמוכים לא שואף ל-0." };
+          }
+          if (props.convergesFinite) {
+            return { ok: false, msg: "הסדרה שהזנת מתכנסת לגבול סופי. נסי סדרה שהצעדים שלה קטנים ל-0, אבל היא עדיין מצליחה להגיע לאינסוף (כמו H_n)." };
+          }
+          return {
+            ok: true,
+            msg: "קלאסיקה! הצעדים בין איבר לאיבר קטנים ל-0 (כמו 1/(n+1) בטור ההרמוני), אבל הסכום המצטבר עדיין שואף לאינסוף."
+          };
+        }
+      },
+      {
+        claim: "אם סדרה שואפת לאינסוף (a_n → ∞), אז היא חייבת להיות מונוטונית עולה החל ממקום מסוים.",
+        hypothesis: "lim a_n = ∞.",
+        violation: "הסדרה לא מונוטונית (עושה צעדים אחורה מדי פעם בדרך לאינסוף).",
+        hint: "קחי סדרה ששואפת לאינסוף כמו n, ותוסיפי לה הפרעה קטנה שקופצת כמו (-1)^n.",
+        suggested: "n + (-1)^n",
+        check: (props) => {
+          if (!props.valid) return { ok: false, msg: "נוסחה לא תקינה." };
+          if (!props.toPlusInfinity) {
+            return { ok: false, msg: "הסדרה שהזנת לא שואפת ל-+∞." };
+          }
+          if (props.isMonotonicEventually) {
+            return { ok: false, msg: "הסדרה שואפת לאינסוף, אבל היא עולה בצורה חלקה ומונוטונית. הוסיפי לה (-1)^n כדי שתעשה צעד אחורה בכל איבר זוגי!" };
+          }
+          return {
+            ok: true,
+            msg: "מעולה! הסדרה שואפת לאינסוף (כי n מנצח), אבל בכל צעד שני היא יורדת קצת ולכן אינה מונוטונית."
+          };
+        }
+      },
+      {
+        claim: "אם סדרה מונוטונית עולה וחסומה מלרע, אז היא מתכנסת לגבול סופי.",
+        hypothesis: "הסדרה עולה (ולכן אוטומטית חסומה מלרע ע\"י האיבר הראשון a_1).",
+        violation: "הסדרה לא חסומה מלעיל ולכן שואפת לאינסוף.",
+        hint: "שימי לב למלכודת בניסוח: סדרה עולה תמיד חסומה מלרע! כדי להתכנס היא צריכה חסם *מלעיל*. תני סדרה עולה שבורחת למעלה כמו n.",
+        suggested: "n",
+        check: (props) => {
+          if (!props.valid) return { ok: false, msg: "נוסחה לא תקינה." };
+          if (!props.isIncreasingEventually) {
+            return { ok: false, msg: "הסדרה צריכה להיות מונוטונית עולה." };
+          }
+          if (props.convergesFinite) {
+            return { ok: false, msg: "הסדרה הזו חסומה גם מלעיל ולכן מתכנסת. אנחנו רוצים סדרה עולה שבורחת לאינסוף!" };
+          }
+          return {
+            ok: true,
+            msg: "תפסת את המלכודת! כל סדרה עולה חסומה מלרע (ע\"י a_1), אבל בלי חסם מלעיל היא בורחת לאינסוף."
+          };
+        }
+      },
+      {
+        claim: "אם הערך המוחלט |a_n| מתכנס לגבול סופי, אז גם הסדרה a_n עצמה מתכנסת.",
+        hypothesis: "|a_n| מתכנסת למספר L > 0.",
+        violation: "הסדרה a_n משנה סימן ולכן מתבדרת.",
+        hint: "כדי ש-|a_n| יתכנס למספר שונה מ-0 ו-a_n תתבדר, פשוט קחי (-1)^n (הערך המוחלט הוא 1 קבוע!).",
+        suggested: "(-1)^n",
+        check: (props) => {
+          if (!props.valid) return { ok: false, msg: "נוסחה לא תקינה." };
+          if (!props.absConvergesFinite) {
+            return { ok: false, msg: "הסדרה |a_n| לא מתכנסת לגבול סופי." };
+          }
+          if (props.convergesFinite) {
+            return { ok: false, msg: "הסדרה a_n עצמה מתכנסת (כנראה ל-0, ששם הטענה דווקא נכונה!). נסי גבול של |a_n| שאינו 0, כמו (-1)^n." };
+          }
+          return {
+            ok: true,
+            msg: "מדויק! |a_n| = 1 מתכנסת ל-1, אבל a_n עצמה קופצת בין 1 ל-1- ומתבדרת. (הטענה נכונה רק כשהגבול הוא 0!)."
+          };
+        }
+      }
+    ];
+
+    // Classifier Levels Data
+    const classifyLevels = [
+      {
+        formulaTex: "a_n = \\frac{(-1)^n}{n}",
+        expr: "(-1)^n / n",
+        note: "האיברים הראשונים: -1, 1/2, -1/3, 1/4...",
+        ans: { conv: "finite", mono: "non", bound: "both", tool: "sandwich" },
+        explanation: "הסדרה מתכנסת ל-0 משני הצדדים. היא לא מונוטונית (מזגזגת) וחסומה בין 1- ל-1/2. הכלי המיידי הוא כלל הסנדוויץ': -1/n ≤ a_n ≤ 1/n."
+      },
+      {
+        formulaTex: "a_n = \\frac{1}{n+1} + \\frac{1}{n+2} + \\dots + \\frac{1}{2n}",
+        expr: "sum(1/(n+k))",
+        note: "השאלה מהדף שלך! סכום של n שברים הולכים וקטנים.",
+        ans: { conv: "finite", mono: "inc", bound: "both", tool: "mono" },
+        explanation: "כפי שהוכחת בדף: הסדרה מונוטונית עולה וחסומה מלעיל ב-1 (ומלרע ב-1/2), ולכן מתכנסת לגבול סופי (ln 2) לפי משפט מונוטוניות וחסימות."
+      },
+      {
+        formulaTex: "a_n = n \\cdot \\cos\\left(\\frac{n\\pi}{2}\\right)",
+        expr: "n * cos(n*pi/2)",
+        note: "שאלה 9 מהדף הראשון שלך!",
+        ans: { conv: "div", mono: "non", bound: "none", tool: "subseq" },
+        explanation: "באינדקסים אי-זוגיים מקבלים 0, ובזוגיים מקבלים ±n. לכן יש 3 גבולות חלקיים (0, +∞, -∞): היא מתבדרת, לא מונוטונית ולא חסומה."
+      },
+      {
+        formulaTex: "a_n = \\left(1 + \\frac{1}{n}\\right)^n",
+        expr: "(1 + 1/n)^n",
+        note: "הגדרת המספר e.",
+        ans: { conv: "finite", mono: "inc", bound: "both", tool: "mono" },
+        explanation: "זו סדרה קלאסית שמוכיחים בעזרת מונוטוניות וחסימות: היא עולה ממש וחסומה מלעיל (קטנה מ-3), ומתכנסת למספר e."
+      },
+      {
+        formulaTex: "a_n = \\frac{\\sin(n)}{n}",
+        expr: "sin(n) / n",
+        note: "סינוס של מספר טבעי חלקי n.",
+        ans: { conv: "finite", mono: "non", bound: "both", tool: "sandwich" },
+        explanation: "הסדרה לא מונוטונית, חסומה בין 1- ל-1, ומתכנסת ל-0 בעזרת כלל הסנדוויץ': -1/n ≤ sin(n)/n ≤ 1/n."
+      },
+      {
+        formulaTex: "a_n = 1 + \\frac{1}{2} + \\frac{1}{3} + \\dots + \\frac{1}{n}",
+        expr: "H_n",
+        note: "הסכום החלקי של הטור ההרמוני.",
+        ans: { conv: "inf", mono: "inc", bound: "one", tool: "known" },
+        explanation: "הסדרה מונוטונית עולה ולכן חסומה מלרע (ע\"י 1), אך אינה חסומה מלעיל ושואפת ל-+∞."
+      },
+      {
+        formulaTex: "a_n = (-1)^n",
+        expr: "(-1)^n",
+        note: "הסדרה המזגזגת הבסיסית: -1, 1, -1, 1...",
+        ans: { conv: "div", mono: "non", bound: "both", tool: "subseq" },
+        explanation: "חסומה בין 1- ל-1, לא מונוטונית, ומתבדרת כי תת-הסדרה הזוגית שואפת ל-1 והאי-זוגית ל-1-."
+      },
+      {
+        formulaTex: "a_n = \\frac{1}{n^2 + 1} + \\frac{1}{n^2 + 2} + \\dots + \\frac{1}{n^2 + n}",
+        expr: "sum(1/(n^2+k))",
+        note: "סכום של n איברים כשהמכנה הוא מסדר גודל של n².",
+        ans: { conv: "finite", mono: "dec", bound: "both", tool: "sandwich" },
+        explanation: "בניגוד לסכום עם n+k, כאן הפער מתכווץ: n/(n²+n) ≤ a_n ≤ n/(n²+1). שני החסמים שואפים ל-0 ולכן הסנדוויץ' עובד מיד!"
+      },
+      {
+        formulaTex: "a_n = n + (-1)^n",
+        expr: "n + (-1)^n",
+        note: "האיברים הראשונים: 0, 3, 2, 5, 4, 7...",
+        ans: { conv: "inf", mono: "non", bound: "one", tool: "known" },
+        explanation: "הסדרה שואפת ל-+∞ (חסומה מלרע ע\"י 0), אבל היא לא מונוטונית כי בכל צעד אי-זוגי היא יורדת ב-1."
+      },
+      {
+        formulaTex: "a_n = \\frac{1}{n}",
+        expr: "1/n",
+        note: "סדרת האפס הבסיסית ביותר.",
+        ans: { conv: "finite", mono: "dec", bound: "both", tool: "known" },
+        explanation: "מונוטונית יורדת ממש, חסומה בקטע (0, 1], ומתכנסת ל-0."
+      }
+    ];
+
+    // ==================== EXPRESSION PARSER & EVALUATOR ====================
+    function compileSequenceEvaluator(rawExpr) {
+      let expr = (rawExpr || "").trim();
+      if (!expr) return null;
+
+      // Normalize common student syntax
+      expr = expr
+        .replace(/−/g, "-")
+        .replace(/\*\*/g, "^")
+        .replace(/π/g, "pi");
+
+      // Special built-in sum patterns
+      const lower = expr.toLowerCase().replace(/\s+/g, "");
+      if (lower === "h_n" || lower === "hn" || lower === "sum(1/k)" || lower === "sum(1/k,k=1..n)") {
+        const cache = [0];
+        for (let i = 1; i <= 300; i++) cache[i] = cache[i - 1] + 1 / i;
+        return (n) => cache[n];
+      }
+      if (lower === "sum(1/(n+k))" || lower === "sum(1/(n+k),k=1..n)") {
+        return (n) => {
+          let s = 0;
+          for (let k = 1; k <= n; k++) s += 1 / (n + k);
+          return s;
+        };
+      }
+      if (lower === "sum(1/(n^2+k))" || lower === "sum(1/(n^2+k),k=1..n)") {
+        return (n) => {
+          let s = 0;
+          for (let k = 1; k <= n; k++) s += 1 / (n * n + k);
+          return s;
+        };
+      }
+      if (lower === "sum(1/k^2)" || lower === "sum(1/k^2,k=1..n)") {
+        const cache = [0];
+        for (let i = 1; i <= 300; i++) cache[i] = cache[i - 1] + 1 / (i * i);
+        return (n) => cache[n];
+      }
+
+      // Implicit multiplication: e.g. 2n -> 2*n, n(n+1) -> n*(n+1), )n -> )*n, )( -> )*(
+      let jsExpr = expr
+        .replace(/(\d)\s*([a-zA-Z(])/g, "$1*$2")
+        .replace(/\)\s*\(/g, ")*(")
+        .replace(/\)\s*([a-zA-Z0-9])/g, ")*$1")
+        .replace(/\bn\s*\(/g, "n*(");
+
+      // Replace ^ with ** safely (handle unary minus before ^ like -1^n vs (-1)^n)
+      jsExpr = jsExpr.replace(/\^/g, "**");
+
+      // Map math functions & constants
+      jsExpr = jsExpr
+        .replace(/\bpi\b/gi, "Math.PI")
+        .replace(/\be\b/g, "Math.E")
+        .replace(/\bsin\b/gi, "Math.sin")
+        .replace(/\bcos\b/gi, "Math.cos")
+        .replace(/\btan\b/gi, "Math.tan")
+        .replace(/\babs\b/gi, "Math.abs")
+        .replace(/\bsqrt\b/gi, "Math.sqrt")
+        .replace(/\bln\b/gi, "Math.log")
+        .replace(/\blog\b/gi, "Math.log")
+        .replace(/\bfloor\b/gi, "Math.floor");
+
+      // Security check: only allow safe characters
+      const sanitizedCheck = jsExpr.replace(/Math\.(PI|E|sin|cos|tan|abs|sqrt|log|floor)/g, "");
+      if (/[^0-9n+\-*/().\s*%]/.test(sanitizedCheck)) {
+        return null;
+      }
+
+      try {
+        const fn = new Function("n", `"use strict"; return (${jsExpr});`);
+        const testVal = fn(1);
+        if (typeof testVal !== "number" || Number.isNaN(testVal)) return null;
+        return fn;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function analyzeSequence(fn) {
+      if (!fn) return { valid: false };
+      const N = 240;
+      const vals = [];
+      for (let n = 1; n <= N; n++) {
+        const v = fn(n);
+        if (typeof v !== "number" || Number.isNaN(v)) return { valid: false };
+        vals.push(v);
+      }
+
+      const tail = vals.slice(140); // n = 141..240
+      const absVals = vals.map(Math.abs);
+      const maxAbs = Math.max(...absVals);
+      const tailMaxAbs = Math.max(...tail.map(Math.abs));
+      const tailMinAbs = Math.min(...tail.map(Math.abs));
+
+      // Check boundedness
+      const isBounded = maxAbs < 1e5 && (Math.max(...tail) - Math.min(...tail) < 50) && (tailMaxAbs <= Math.max(...vals.slice(0, 40).map(Math.abs)) * 1.5 + 5);
+
+      // Check convergence to finite limit
+      const tailSpan = Math.max(...tail) - Math.min(...tail);
+      const lastDiff = Math.abs(vals[N - 1] - vals[N - 2]);
+      const convergesFinite = isBounded && tailSpan < 0.035 && lastDiff < 0.005;
+      const limitApprox = convergesFinite ? Number(vals[N - 1].toFixed(3)) : null;
+
+      // Check |a_n| finite convergence
+      const absTail = tail.map(Math.abs);
+      const absTailSpan = Math.max(...absTail) - Math.min(...absTail);
+      const absConvergesFinite = maxAbs < 1e5 && absTailSpan < 0.035;
+
+      // Check +infinity / |a_n| -> infinity
+      const toPlusInfinity = !isBounded && Math.min(...tail) > 25 && vals[N - 1] > vals[100] + 15;
+      const absToInfinity = !isBounded && tailMinAbs > 25 && Math.abs(vals[N - 1]) > Math.abs(vals[100]) + 15;
+
+      // Check monotonicity (eventually, from n=20 onwards)
+      let incCount = 0;
+      let decCount = 0;
+      const startMono = 20;
+      const totalSteps = N - 1 - startMono;
+      for (let i = startMono; i < N - 1; i++) {
+        if (vals[i + 1] >= vals[i] - 1e-12) incCount++;
+        if (vals[i + 1] <= vals[i] + 1e-12) decCount++;
+      }
+      const isIncreasingEventually = incCount === totalSteps;
+      const isDecreasingEventually = decCount === totalSteps;
+      const isMonotonicEventually = isIncreasingEventually || isDecreasingEventually;
+
+      // Check difference a_{n+1} - a_n -> 0
+      const tailDiffs = [];
+      for (let i = 180; i < N - 1; i++) {
+        tailDiffs.push(Math.abs(vals[i + 1] - vals[i]));
+      }
+      const diffToZero = Math.max(...tailDiffs) < 0.02;
+
+      const oscillatesBounded = isBounded && !convergesFinite;
+
+      return {
+        valid: true,
+        vals,
+        isBounded,
+        convergesFinite,
+        limitApprox,
+        absConvergesFinite,
+        toPlusInfinity,
+        absToInfinity,
+        isIncreasingEventually,
+        isDecreasingEventually,
+        isMonotonicEventually,
+        diffToZero,
+        oscillatesBounded
+      };
+    }
+
+    // ==================== RENDERING MATH & GRAPHS ====================
+    function renderMathStringToTex(raw) {
+      let s = (raw || "").trim();
+      if (!s) return "\\text{...}";
+      const lower = s.toLowerCase().replace(/\s+/g, "");
+      if (lower === "h_n" || lower === "hn" || lower === "sum(1/k)") {
+        return "H_n = \\sum_{k=1}^{n} \\frac{1}{k} = 1 + \\frac{1}{2} + \\dots + \\frac{1}{n}";
+      }
+      if (lower === "sum(1/(n+k))") {
+        return "\\sum_{k=1}^{n} \\frac{1}{n+k} = \\frac{1}{n+1} + \\dots + \\frac{1}{2n}";
+      }
+      if (lower === "sum(1/(n^2+k))") {
+        return "\\sum_{k=1}^{n} \\frac{1}{n^2+k}";
+      }
+      if (lower === "sum(1/k^2)") {
+        return "\\sum_{k=1}^{n} \\frac{1}{k^2}";
+      }
+
+      // Pretty TeX conversions
+      let tex = s
+        .replace(/\bpi\b/gi, "\\pi")
+        .replace(/\bsin\b/gi, "\\sin")
+        .replace(/\bcos\b/gi, "\\cos")
+        .replace(/\bln\b/gi, "\\ln")
+        .replace(/\bsqrt\(([^)]+)\)/gi, "\\sqrt{$1}")
+        .replace(/\*/g, " \\cdot ");
+
+      // Simple fraction formatting a/b
+      tex = tex.replace(/(\([^()]+\)|[a-zA-Z0-9^\\{}]+)\s*\/\s*(\([^()]+\)|[a-zA-Z0-9^\\{}]+)/g, "\\frac{$1}{$2}");
+      return tex;
+    }
+
+    function renderKaTeX(el, tex) {
+      if (!el) return;
+      if (window.katex) {
+        try {
+          katex.render(tex, el, { throwOnError: false, displayMode: false });
+          return;
+        } catch (e) {}
+      }
+      el.textContent = tex;
+    }
+
+    function drawSequencePlot(canvasId, values) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      const ctx = canvas.getContext("2d");
+      ctx.scale(dpr, dpr);
+
+      const W = rect.width;
+      const H = rect.height;
+      ctx.clearRect(0, 0, W, H);
+
+      if (!values || values.length === 0) {
+        ctx.fillStyle = "#64748b";
+        ctx.font = "13px Heebo, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("הזיני נוסחה תקינה כדי לראות את גרף הסדרה", W / 2, H / 2);
+        return;
+      }
+
+      const plotVals = values.slice(0, 25);
+      let minV = Math.min(...plotVals, 0);
+      let maxV = Math.max(...plotVals, 0);
+      if (Math.abs(maxV - minV) < 1e-6) {
+        maxV += 1;
+        minV -= 1;
+      }
+      const padY = (maxV - minV) * 0.15;
+      minV -= padY;
+      maxV += padY;
+
+      const margin = { left: 44, right: 16, top: 18, bottom: 26 };
+      const plotW = W - margin.left - margin.right;
+      const plotH = H - margin.top - margin.bottom;
+
+      const toX = (idx) => margin.left + (idx / (plotVals.length - 1 || 1)) * plotW;
+      const toY = (val) => margin.top + plotH - ((val - minV) / (maxV - minV)) * plotH;
+
+      // Grid lines & Y labels
+      ctx.strokeStyle = "#1e293b";
+      ctx.lineWidth = 1;
+      ctx.fillStyle = "#64748b";
+      ctx.font = "10px JetBrains Mono, monospace";
+      ctx.textAlign = "right";
+
+      const steps = 4;
+      for (let i = 0; i <= steps; i++) {
+        const v = minV + (i / steps) * (maxV - minV);
+        const y = toY(v);
+        ctx.beginPath();
+        ctx.moveTo(margin.left, y);
+        ctx.lineTo(W - margin.right, y);
+        ctx.stroke();
+        ctx.fillText(Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2), margin.left - 6, y + 3);
+      }
+
+      // Zero axis highlight
+      if (minV <= 0 && maxV >= 0) {
+        const y0 = toY(0);
+        ctx.strokeStyle = "#475569";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(margin.left, y0);
+        ctx.lineTo(W - margin.right, y0);
+        ctx.stroke();
+      }
+
+      // Dashed connecting guide line
+      ctx.strokeStyle = "rgba(99, 102, 241, 0.3)";
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      plotVals.forEach((v, i) => {
+        const x = toX(i);
+        const y = toY(v);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Scatter dots
+      plotVals.forEach((v, i) => {
+        const x = toX(i);
+        const y = toY(v);
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = v >= 0 ? "#22d3ee" : "#f472b6";
+        ctx.fill();
+        ctx.strokeStyle = "#0f172a";
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      });
+
+      // X axis labels
+      ctx.fillStyle = "#64748b";
+      ctx.textAlign = "center";
+      [1, 5, 10, 15, 20, 25].forEach((nVal) => {
+        if (nVal <= plotVals.length) {
+          ctx.fillText(`n=${nVal}`, toX(nVal - 1), H - 8);
+        }
+      });
+    }
+
+    function updateTermsStrip(containerId, values) {
+      const el = document.getElementById(containerId);
+      if (!el) return;
+      if (!values || values.length === 0) {
+        el.innerHTML = `<span class="text-slate-500">—</span>`;
+        return;
+      }
+      el.innerHTML = values.slice(0, 8).map((v, idx) => {
+        const formatted = Math.abs(v) >= 100 ? v.toFixed(1) : Number(v.toFixed(3));
+        return `<span class="px-2 py-1 rounded bg-slate-900 border border-slate-800 text-slate-300 shrink-0">a<sub>${idx + 1}</sub>=${formatted}</span>`;
+      }).join("");
+    }
+
+    // ==================== MODE 1 LOGIC ====================
+    function loadCounterLevel(idx) {
+      ceIndex = (idx + counterLevels.length) % counterLevels.length;
+      const lvl = counterLevels[ceIndex];
+      document.getElementById("ceLevelBadge").textContent = `אתגר ${ceIndex + 1} מתוך ${counterLevels.length}` + (ceSolved.has(ceIndex) ? " ✓ הושלם" : "");
+      document.getElementById("ceClaimText").textContent = `"${lvl.claim}"`;
+      document.getElementById("ceHypothesisText").textContent = lvl.hypothesis;
+      document.getElementById("ceViolationText").textContent = lvl.violation;
+      document.getElementById("ceHintBox").textContent = "💡 רמז: " + lvl.hint;
+      document.getElementById("ceHintBox").classList.add("hidden");
+      document.getElementById("ceFeedback").classList.add("hidden");
+      handleSeqInputChange();
+    }
+
+    function handleSeqInputChange() {
+      const raw = document.getElementById("seqInput").value;
+      const tex = "a_n = " + renderMathStringToTex(raw);
+      renderKaTeX(document.getElementById("liveMathPreview"), tex);
+
+      const fn = compileSequenceEvaluator(raw);
+      if (fn) {
+        const vals = [];
+        for (let n = 1; n <= 25; n++) vals.push(fn(n));
+        drawSequencePlot("ceCanvas", vals);
+        updateTermsStrip("ceTermsStrip", vals);
+        document.getElementById("graphStatusTag").textContent = "מחושב תקין";
+        document.getElementById("graphStatusTag").className = "text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300";
+      } else {
+        drawSequencePlot("ceCanvas", null);
+        updateTermsStrip("ceTermsStrip", null);
+        document.getElementById("graphStatusTag").textContent = "ממתין לנוסחה";
+        document.getElementById("graphStatusTag").className = "text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400";
+      }
+    }
+
+    function insertToken(token) {
+      const input = document.getElementById("seqInput");
+      const start = input.selectionStart || input.value.length;
+      const end = input.selectionEnd || input.value.length;
+      const val = input.value;
+      input.value = val.slice(0, start) + token + val.slice(end);
+      input.focus();
+      handleSeqInputChange();
+    }
+
+    function clearSeqInput() {
+      const input = document.getElementById("seqInput");
+      input.value = "";
+      input.focus();
+      handleSeqInputChange();
+    }
+
+    function toggleCeHint() {
+      document.getElementById("ceHintBox").classList.toggle("hidden");
+    }
+
+    function evaluateCounterexample() {
+      const raw = document.getElementById("seqInput").value;
+      const fn = compileSequenceEvaluator(raw);
+      const props = analyzeSequence(fn);
+      const lvl = counterLevels[ceIndex];
+      const result = lvl.check(props);
+
+      const fb = document.getElementById("ceFeedback");
+      fb.classList.remove("hidden");
+
+      if (result.ok) {
+        fb.className = "animate-pop rounded-xl p-4 border border-emerald-500/40 bg-emerald-500/15 text-emerald-200 text-sm leading-relaxed";
+        fb.innerHTML = `
+          <div class="font-bold text-emerald-300 text-base mb-1">🎉 הפרכה מוצלחת! (+100 נקודות)</div>
+          <p>${result.msg}</p>
+          <button onclick="nextCounterLevel()" class="mt-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-1.5 rounded-lg text-xs transition">
+            לאתגר הבא ◀
+          </button>
+        `;
+        if (!ceSolved.has(ceIndex)) {
+          ceSolved.add(ceIndex);
+          score += 100;
+          streak += 1;
+          updateStatsUI();
+          document.getElementById("ceLevelBadge").textContent = `אתגר ${ceIndex + 1} מתוך ${counterLevels.length} ✓ הושלם`;
+        }
+      } else {
+        streak = 0;
+        updateStatsUI();
+        fb.className = "animate-pop rounded-xl p-4 border border-rose-500/40 bg-rose-500/15 text-rose-200 text-sm leading-relaxed";
+        fb.innerHTML = `
+          <div class="font-bold text-rose-300 text-base mb-1">⚠️ עדיין לא מפריך את הטענה</div>
+          <p>${result.msg}</p>
+        `;
+      }
+    }
+
+    function nextCounterLevel() {
+      loadCounterLevel(ceIndex + 1);
+    }
+
+    function prevCounterLevel() {
+      loadCounterLevel(ceIndex - 1);
+    }
+
+    // ==================== MODE 2 LOGIC ====================
+    function loadClassifyLevel(idx) {
+      clIndex = (idx + classifyLevels.length) % classifyLevels.length;
+      const item = classifyLevels[clIndex];
+      document.getElementById("clBadge").textContent = `דגימה ${clIndex + 1} מתוך ${classifyLevels.length}` + (clSolved.has(clIndex) ? " ✓ אובחנה" : "");
+      renderKaTeX(document.getElementById("clFormulaDisplay"), item.formulaTex);
+      document.getElementById("clSubNote").textContent = item.note;
+      document.getElementById("clFeedback").classList.add("hidden");
+
+      // Reset selections
+      diagSelections = { conv: null, mono: null, bound: null, tool: null };
+      document.querySelectorAll(".diag-btn").forEach((btn) => {
+        btn.className = "diag-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-300";
+      });
+
+      // Draw graph
+      const fn = compileSequenceEvaluator(item.expr);
+      if (fn) {
+        const vals = [];
+        for (let n = 1; n <= 25; n++) vals.push(fn(n));
+        drawSequencePlot("clCanvas", vals);
+        updateTermsStrip("clTermsStrip", vals);
+      }
+    }
+
+    function selectDiag(group, val, btnEl) {
+      diagSelections[group] = val;
+      const container = document.getElementById(`group-${group}`);
+      container.querySelectorAll(".diag-btn").forEach((b) => {
+        b.className = "diag-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-900/90 hover:bg-slate-800 text-xs sm:text-sm font-semibold text-slate-300";
+      });
+      btnEl.className = "diag-btn py-2.5 px-3 rounded-xl border-2 border-cyan-400 bg-cyan-500/20 text-xs sm:text-sm font-bold text-white shadow-md shadow-cyan-500/15";
+    }
+
+    function checkDiagnosis() {
+      const fb = document.getElementById("clFeedback");
+      if (!diagSelections.conv || !diagSelections.mono || !diagSelections.bound || !diagSelections.tool) {
+        fb.classList.remove("hidden");
+        fb.className = "animate-pop mt-4 rounded-xl p-4 border border-amber-500/40 bg-amber-500/15 text-amber-200 text-sm";
+        fb.textContent = "בחרי תשובה בכל 4 הקטגוריות לפני בדיקת האבחון!";
+        return;
+      }
+
+      const item = classifyLevels[clIndex];
+      const checks = [
+        { key: "conv", label: "התכנסות" },
+        { key: "mono", label: "מונוטוניות" },
+        { key: "bound", label: "חסימות" },
+        { key: "tool", label: "כלי הוכחה" }
+      ];
+
+      let correctCount = 0;
+      const details = checks.map((c) => {
+        const isOk = diagSelections[c.key] === item.ans[c.key];
+        if (isOk) correctCount++;
+        return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${isOk ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/20 text-rose-300"}">${isOk ? "✓" : "✕"} ${c.label}</span>`;
+      }).join(" ");
+
+      fb.classList.remove("hidden");
+      if (correctCount === 4) {
+        fb.className = "animate-pop mt-4 rounded-xl p-4 border border-emerald-500/40 bg-emerald-500/15 text-emerald-200 text-sm leading-relaxed";
+        fb.innerHTML = `
+          <div class="font-bold text-emerald-300 text-base mb-1.5">🔬 אבחון מושלם (4/4)! (+100 נקודות)</div>
+          <div class="flex flex-wrap gap-1.5 mb-2">${details}</div>
+          <p>${item.explanation}</p>
+          <button onclick="nextClassifyLevel()" class="mt-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-1.5 rounded-lg text-xs transition">
+            לדגימה הבאה ◀
+          </button>
+        `;
+        if (!clSolved.has(clIndex)) {
+          clSolved.add(clIndex);
+          score += 100;
+          streak += 1;
+          updateStatsUI();
+          document.getElementById("clBadge").textContent = `דגימה ${clIndex + 1} מתוך ${classifyLevels.length} ✓ אובחנה`;
+        }
+      } else {
+        streak = 0;
+        updateStatsUI();
+        fb.className = "animate-pop mt-4 rounded-xl p-4 border border-rose-500/40 bg-rose-500/15 text-rose-200 text-sm leading-relaxed";
+        fb.innerHTML = `
+          <div class="font-bold text-rose-300 text-base mb-1.5">דייקת ב-${correctCount} מתוך 4 סעיפים:</div>
+          <div class="flex flex-wrap gap-1.5 mb-2">${details}</div>
+          <p class="text-slate-200">${item.explanation}</p>
+        `;
+      }
+    }
+
+    function nextClassifyLevel() {
+      loadClassifyLevel(clIndex + 1);
+    }
+
+    function prevClassifyLevel() {
+      loadClassifyLevel(clIndex - 1);
+    }
+
+    // ==================== NAVIGATION & UI HELPERS ====================
+    function switchMode(mode) {
+      currentMode = mode;
+      const tabC = document.getElementById("tabCounterexample");
+      const tabL = document.getElementById("tabClassifier");
+      const secC = document.getElementById("modeCounter");
+      const secL = document.getElementById("modeClassify");
+
+      if (mode === "counter") {
+        tabC.className = "py-2.5 px-4 rounded-xl font-bold text-sm sm:text-base transition flex items-center justify-center gap-2 bg-indigo-600 text-white shadow-lg shadow-indigo-600/25";
+        tabL.className = "py-2.5 px-4 rounded-xl font-bold text-sm sm:text-base transition flex items-center justify-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/60";
+        secC.classList.remove("hidden");
+        secL.classList.add("hidden");
+        handleSeqInputChange();
+      } else {
+        tabL.className = "py-2.5 px-4 rounded-xl font-bold text-sm sm:text-base transition flex items-center justify-center gap-2 bg-cyan-600 text-white shadow-lg shadow-cyan-600/25";
+        tabC.className = "py-2.5 px-4 rounded-xl font-bold text-sm sm:text-base transition flex items-center justify-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/60";
+        secL.classList.remove("hidden");
+        secC.classList.add("hidden");
+        loadClassifyLevel(clIndex);
+      }
+    }
+
+    function updateStatsUI() {
+      document.getElementById("scoreDisplay").textContent = score;
+      document.getElementById("streakDisplay").textContent = streak;
+    }
+
+    // Cheat sheet drawer listeners
+    document.getElementById("toggleCheatSheetBtn").addEventListener("click", () => {
+      document.getElementById("cheatSheetModal").classList.remove("hidden");
+    });
+    document.getElementById("closeCheatSheetBtn").addEventListener("click", () => {
+      document.getElementById("cheatSheetModal").classList.add("hidden");
+    });
+    document.getElementById("cheatSheetModal").addEventListener("click", (e) => {
+      if (e.target.id === "cheatSheetModal") {
+        document.getElementById("cheatSheetModal").classList.add("hidden");
+      }
+    });
+
+    // Resize redraw
+    window.addEventListener("resize", () => {
+      if (currentMode === "counter") handleSeqInputChange();
+      else loadClassifyLevel(clIndex);
+    });
+
+    // Initialize on load
+    window.onload = function () {
+      document.querySelectorAll(".math-inline").forEach((el) => {
+        renderKaTeX(el, el.getAttribute("data-tex"));
+      });
+      loadCounterLevel(0);
+    };
+  </script>
+</body>
+</html>
